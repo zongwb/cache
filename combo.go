@@ -1,6 +1,9 @@
 package cache
 
-import ()
+import (
+	"fmt"
+	"io"
+)
 
 // HashFunc defines a hash function.
 type HashFunc func(key interface{}) uint32
@@ -10,8 +13,7 @@ type HashFunc func(key interface{}) uint32
 // route a key to a specific LRC cache.
 // ComboLRCCache is thread-safe.
 type ComboLRUCache struct {
-	hash HashFunc
-	//buckets uint32
+	hash   HashFunc
 	caches []Cache
 }
 
@@ -24,8 +26,7 @@ func NewComboLRUCache(sz int, bs int, h HashFunc) Cache {
 		sz = bs
 	}
 	combo := &ComboLRUCache{
-		hash: h,
-		//buckets: uint32(bs),
+		hash:   h,
 		caches: make([]Cache, bs),
 	}
 	for i := range combo.caches {
@@ -52,4 +53,11 @@ func (combo *ComboLRUCache) routeKey(key interface{}) Cache {
 	h := combo.hash(key)
 	idx := h % uint32(len(combo.caches))
 	return combo.caches[idx]
+}
+
+func (c *ComboLRUCache) PrintAll(w io.Writer, sep string) {
+	for i, ca := range c.caches {
+		fmt.Fprintf(w, "Items in cache #%d\n", i)
+		ca.(*LRUCache).PrintAll(w, sep)
+	}
 }

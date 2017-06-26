@@ -4,6 +4,8 @@ package cache
 import (
 	"container/list"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"sync"
 	"time"
@@ -128,4 +130,12 @@ func (c *LRUCache) addItem(key, val interface{}) *list.Element {
 	elm := c.l.PushFront(itm)
 	c.count++
 	return elm
+}
+
+func (c *LRUCache) PrintAll(w io.Writer, sep string) {
+	c.Lock()
+	defer c.Unlock()
+	for e := c.l.Front(); e != nil; e = e.Next() {
+		fmt.Fprintf(w, "%v%s", e.Value.(*item).val, sep)
+	}
 }
