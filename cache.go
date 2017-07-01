@@ -26,8 +26,8 @@ type Cache interface {
 }
 
 type item struct {
-	val interface{}
-	ts  time.Time
+	key, val interface{}
+	ts       time.Time
 }
 
 // LRUCache implements a cache using LRC algorithm.
@@ -91,7 +91,10 @@ func (c *LRUCache) Set(key, val interface{}) error {
 
 	elm, ok := c.store[key]
 	if !ok {
-		elm := c.addItem(key, val)
+		elm, removed := c.addItem(key, val)
+		if removed != nil {
+			delete(c.store, removed.Value.(*item).key)
+		}
 		c.store[key] = elm
 		return nil
 	}
@@ -121,8 +124,9 @@ func (c *LRUCache) updateItem(elm *list.Element, val interface{}) {
 // addItem adds a new item to the front of the list, and updates the counter.
 // If the list is full, the last (oldest) item is removed.
 // It must be called when the global lock is acquired.
-func (c *LRUCache) addItem(key, val interface{}) *list.Element {
+func (c *LRUCache) addItem(key, val interface{}) (added, removed *list.Element) {
 	itm := &item{
+		key: key,
 		val: val,
 		ts:  time.Now(),
 	}
@@ -132,13 +136,14 @@ func (c *LRUCache) addItem(key, val interface{}) *list.Element {
 		last := c.l.Back()
 		if last != nil {
 			c.l.Remove(last)
+			removed = last
 			c.count--
 		}
 	}
 
-	elm := c.l.PushFront(itm)
+	added = c.l.PushFront(itm)
 	c.count++
-	return elm
+	return
 }
 
 func (c *LRUCache) PrintAll(w io.Writer, sep string) {
