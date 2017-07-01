@@ -48,6 +48,14 @@ func (combo *ComboLRUCache) Set(key, val interface{}) error {
 	return c.Set(key, val)
 }
 
+func (c *ComboLRUCache) Items() int {
+	sz := 0
+	for _, ca := range c.caches {
+		sz = sz + ca.Items()
+	}
+	return sz
+}
+
 // routeKey chooses a LRC cache instance by the hash function.
 func (combo *ComboLRUCache) routeKey(key interface{}) Cache {
 	h := combo.hash(key)

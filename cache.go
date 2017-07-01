@@ -22,6 +22,7 @@ var (
 type Cache interface {
 	Get(key interface{}) (res interface{}, err error)
 	Set(key, val interface{}) error
+	Items() int
 }
 
 type item struct {
@@ -97,6 +98,14 @@ func (c *LRUCache) Set(key, val interface{}) error {
 
 	c.updateItem(elm, val)
 	return nil
+}
+
+func (c *LRUCache) Items() int {
+	if c == nil {
+		return 0
+	}
+
+	return c.l.Len()
 }
 
 // updateItem updates the timestamp and value of the item in elm,
