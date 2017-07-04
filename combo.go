@@ -3,6 +3,7 @@ package cache
 import (
 	"fmt"
 	"io"
+	"time"
 )
 
 // HashFunc defines a hash function.
@@ -18,7 +19,7 @@ type ComboLRUCache struct {
 }
 
 // NewComboLRUCache creates a ComboLRUCache instance.
-func NewComboLRUCache(sz int, bs int, h HashFunc) Cache {
+func NewComboLRUCache(sz int, bs int, expiry time.Duration, h HashFunc) Cache {
 	if bs < 1 {
 		bs = 1
 	}
@@ -30,7 +31,7 @@ func NewComboLRUCache(sz int, bs int, h HashFunc) Cache {
 		caches: make([]Cache, bs),
 	}
 	for i := range combo.caches {
-		combo.caches[i] = NewLRUCache(sz / bs)
+		combo.caches[i] = NewLRUCache(sz/bs, expiry)
 	}
 	return combo
 }

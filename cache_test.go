@@ -5,6 +5,7 @@ import (
 	"hash/crc32"
 	"os"
 	"testing"
+	"time"
 )
 
 // HashStringCRC32 hashes a string using CRC32 algorithm.
@@ -16,7 +17,7 @@ func HashStringCRC32(key interface{}) uint32 {
 func TestCache(t *testing.T) {
 	fmt.Println("\nTesting single LRUCache")
 	sz := 2
-	cache := NewLRUCache(sz)
+	cache := NewLRUCache(sz, time.Millisecond)
 	c := cache.(*LRUCache)
 	tab := []struct {
 		key string
@@ -35,7 +36,7 @@ func TestCache(t *testing.T) {
 
 func TestCombo(t *testing.T) {
 	fmt.Println("\nTesting ComboLRUCache")
-	combo := NewComboLRUCache(10, 2, HashStringCRC32)
+	combo := NewComboLRUCache(20, 2, time.Millisecond, HashStringCRC32)
 	c := combo.(*ComboLRUCache)
 	c.Set("A", 1)
 	tab := []struct {

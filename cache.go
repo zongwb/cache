@@ -36,6 +36,8 @@ type LRUCache struct {
 	sz    int
 	count int
 
+	expiry time.Duration
+
 	// store holds the key-value pairs.
 	store map[interface{}]*list.Element
 
@@ -47,16 +49,17 @@ type LRUCache struct {
 }
 
 //NewLRUCache creates a LRCCache instance.
-func NewLRUCache(sz int) Cache {
+func NewLRUCache(sz int, expiry time.Duration) Cache {
 	if sz <= 0 {
 		log.Fatal("Size must be greater than 0")
 	}
 
 	c := &LRUCache{
-		sz:    sz,
-		store: make(map[interface{}]*list.Element),
-		count: 0,
-		l:     list.New(),
+		sz:     sz,
+		expiry: expiry,
+		store:  make(map[interface{}]*list.Element),
+		count:  0,
+		l:      list.New(),
 	}
 	return c
 }
@@ -75,8 +78,13 @@ func (c *LRUCache) Get(key interface{}) (interface{}, error) {
 	if !ok {
 		return nil, ErrItemNotFound
 	}
-	val := elm.Value.(*item).val
-	c.updateItem(elm, val)
+	itm := elm.Value.(*item)
+	val := itm.val
+	if c.expiry > 0 && time.Since(itm.ts) > c.expiry {
+		c.removeItem(elm)
+	} else {
+		c.updateItem(elm, val)
+	}
 	return val, nil
 }
 
@@ -91,11 +99,7 @@ func (c *LRUCache) Set(key, val interface{}) error {
 
 	elm, ok := c.store[key]
 	if !ok {
-		elm, removed := c.addItem(key, val)
-		if removed != nil {
-			delete(c.store, removed.Value.(*item).key)
-		}
-		c.store[key] = elm
+		c.addItem(key, val)
 		return nil
 	}
 
@@ -111,20 +115,19 @@ func (c *LRUCache) Items() int {
 	return c.l.Len()
 }
 
-// updateItem updates the timestamp and value of the item in elm,
+// updateItem updates the value of the item in elm,
 // and move it to the front of the list.
 // It must be called when the global lock is acquired.
 func (c *LRUCache) updateItem(elm *list.Element, val interface{}) {
 	itm := elm.Value.(*item)
 	itm.val = val
-	itm.ts = time.Now()
 	c.l.MoveToFront(elm)
 }
 
 // addItem adds a new item to the front of the list, and updates the counter.
 // If the list is full, the last (oldest) item is removed.
 // It must be called when the global lock is acquired.
-func (c *LRUCache) addItem(key, val interface{}) (added, removed *list.Element) {
+func (c *LRUCache) addItem(key, val interface{}) (added *list.Element) {
 	itm := &item{
 		key: key,
 		val: val,
@@ -134,16 +137,24 @@ func (c *LRUCache) addItem(key, val interface{}) (added, removed *list.Element) 
 	if c.count >= c.sz {
 		// Need to remove last item
 		last := c.l.Back()
-		if last != nil {
-			c.l.Remove(last)
-			removed = last
-			c.count--
-		}
+		c.removeItem(last)
 	}
 
 	added = c.l.PushFront(itm)
+	c.store[key] = added
 	c.count++
 	return
+}
+
+// removeItem removes an item from the map and list.
+// It must be called when the global lock is acquired.
+func (c *LRUCache) removeItem(elm *list.Element) {
+	if elm == nil {
+		return
+	}
+	delete(c.store, elm.Value.(*item).key)
+	c.l.Remove(elm)
+	c.count--
 }
 
 func (c *LRUCache) PrintAll(w io.Writer, sep string) {
