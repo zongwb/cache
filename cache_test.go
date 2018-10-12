@@ -63,3 +63,28 @@ func TestCombo(t *testing.T) {
 	}
 	c.PrintAll(os.Stdout, "\n")
 }
+
+func TestComboDelete(t *testing.T) {
+	fmt.Println("\nTesting ComboLRUCacheDelete")
+	combo := NewComboLRUCache(20, 2, time.Millisecond, HashStringCRC32)
+	c := combo.(*ComboLRUCache)
+	c.Set("A", 1)
+	tab := []struct {
+		key string
+		val int
+	}{
+		{"A", 1},
+		{"B", 2},
+		{"C", 3},
+		{"D", 4},
+		{"E", 5},
+		{"F", 6},
+	}
+	for _, e := range tab {
+		c.Set(e.key, e.val)
+	}
+	c.Del("A")
+	c.Del("C")
+	c.Del("E")
+	c.PrintAll(os.Stdout, "\n")
+}

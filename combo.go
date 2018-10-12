@@ -43,6 +43,12 @@ func (combo *ComboLRUCache) Get(key interface{}) (res interface{}, err error) {
 	return c.Get(key)
 }
 
+// Del deletes the entry identified by key.
+func (combo *ComboLRUCache) Del(key interface{}) (err error) {
+	c := combo.routeKey(key)
+	return c.Del(key)
+}
+
 // Set adds or updates the key-value pair to or in the cache.
 func (combo *ComboLRUCache) Set(key, val interface{}) error {
 	c := combo.routeKey(key)

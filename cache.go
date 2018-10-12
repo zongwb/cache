@@ -22,6 +22,7 @@ var (
 type Cache interface {
 	Get(key interface{}) (res interface{}, err error)
 	Set(key, val interface{}) error
+	Del(key interface{}) error
 	Items() int
 }
 
@@ -86,6 +87,23 @@ func (c *LRUCache) Get(key interface{}) (interface{}, error) {
 		c.updateItem(elm, val)
 	}
 	return val, nil
+}
+
+// Del deletes the entry identifiedy by key.
+func (c *LRUCache) Del(key interface{}) error {
+	if c == nil {
+		return ErrCacheNotInit
+	}
+
+	c.Lock()
+	defer c.Unlock()
+
+	elm, ok := c.store[key]
+	if !ok {
+		return nil
+	}
+	c.removeItem(elm)
+	return nil
 }
 
 // Set adds or updates the key-value pair to or in the cache.
@@ -161,6 +179,6 @@ func (c *LRUCache) PrintAll(w io.Writer, sep string) {
 	c.Lock()
 	defer c.Unlock()
 	for e := c.l.Front(); e != nil; e = e.Next() {
-		fmt.Fprintf(w, "%v%s", e.Value.(*item).val, sep)
+		fmt.Fprintf(w, "%v:%v%s", e.Value.(*item).key, e.Value.(*item).val, sep)
 	}
 }
